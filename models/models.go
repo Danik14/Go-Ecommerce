@@ -1,45 +1,56 @@
 package models
 
+import "time"
+
 type User struct {
-	ID
-	First_Name
-	Last_Name
-	Password
-	Email
-	Phone
-	Token
-	Refresh_Token
-	Created_At
-	Updated_At
-	User_ID
-	UserCart
-	Address_Details
-	Order_Status
+	ID              primitive.ObjectID
+	First_Name      *string
+	Last_Name       *string
+	Password        *string
+	Email           *string
+	Phone           *string
+	Token           *string
+	Refresh_Token   *string
+	Created_At      time.Time
+	Updated_At      time.Time
+	User_ID         string
+	UserCart        []ProductUser
+	Address_Details []Address
+	Order_Status    []Order
 }
 
 type Product struct {
-	Product_ID
-	Product_Name
-	Price
-	Rating
-	Image
+	Product_ID   primitive.ObjectID
+	Product_Name *string
+	Price        *uint64
+	Rating       *uint8
+	Image        *string
+}
+
+// for storing product in user's cart
+type ProductUser struct {
+	Product_ID   primitive.ObjectID
+	Product_Name *string
+	Price        int
+	Rating       *uint8
+	Image        *string
 }
 
 type Address struct {
-	Address_id
-	House
-	Street
-	City
-	Pincode
+	Address_id primitive.ObjectID
+	House      *string
+	Street     *string
+	City       *string
+	Pincode    *string
 }
 
 type Order struct {
-	Order_ID
-	Order_Cart
-	Ordered_At
-	Price
-	Discount
-	Payment_Method
+	Order_ID       primitive.ObjectID
+	Order_Cart     []ProductUser
+	Ordered_At     time.Time
+	Price          int
+	Discount       *int
+	Payment_Method Payment
 }
 
 type Payment struct {
