@@ -36,22 +36,26 @@ func NewApplication(prodCollection, userCollection *mongo.Collection) *Applicati
 
 func SignUp() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		//create context for timout
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		defer cancel()
-		fmt.Println(1)
 
 		var user models.User
+
+		//check for json converting errors
 		if err := c.BindJSON(&user); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 		}
 
+		//validate struct for exposed fields
 		validationErr := Validate.Struct(user)
 		if validationErr != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": validationErr})
 			return
 		}
 
+		//count number of users with passed email
 		count, err := UserCollection.CountDocuments(ctx, bson.M{"email": user.Email})
 		if err != nil {
 			log.Panic(err)
@@ -59,10 +63,12 @@ func SignUp() gin.HandlerFunc {
 			return
 		}
 
+		//if there is at least 1 similar email => throw an error
 		if count > 0 {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "user already exists"})
 		}
 
+		//do the same for the phone, becuase it also has to be unique
 		count, err = UserCollection.CountDocuments(ctx, bson.M{"phone": user.Phone})
 
 		defer cancel()
@@ -77,9 +83,13 @@ func SignUp() gin.HandlerFunc {
 			return
 		}
 
+		//hashing password using standart library
+		//for not storing the direct string
 		password := HashPassword(*user.Password)
 		user.Password = &password
 
+		//After validating every piece of info
+		//try to insert it into mongodb collection
 		//RFC3339 is a specified time format
 		user.Created_At, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
 		user.Created_At, _ = time.Parse(time.RFC3339, time.Now().Format(time.RFC3339))
@@ -102,36 +112,47 @@ func SignUp() gin.HandlerFunc {
 	}
 }
 
-// func Login() gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
-// 		defer cancel()
-// 		var user models.User
-// 		var founduser models.User
-// 		if err := c.BindJSON(&user); err != nil {
-// 			c.JSON(http.StatusBadRequest, gin.H{"error": err})
-// 			return
-// 		}
-// 		err := UserCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&founduser)
-// 		defer cancel()
-// 		if err != nil {
-// 			c.JSON(http.StatusInternalServerError, gin.H{"error": "login or password incorrect"})
-// 			return
-// 		}
-// 		PasswordIsValid, msg := VerifyPassword(*user.Password, *founduser.Password)
-// 		defer cancel()
-// 		if !PasswordIsValid {
-// 			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-// 			fmt.Println(msg)
-// 			return
-// 		}
-// 		token, refreshToken, _ := tokens.TokenGenerator(*founduser.Email, *founduser.First_Name, *founduser.Last_Name, founduser.User_ID)
-// 		defer cancel()
-// 		tokens.UpdateAllTokens(token, refreshToken, founduser.User_ID)
-// 		c.JSON(http.StatusFound, founduser)
+func Login() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		//create context for timout
+		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
+		defer cancel()
+		var user models.User
+		var founduser models.User
 
-// 	}
-// }
+		//check for json 'convertibleness'
+		if err := c.BindJSON(&user); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err})
+			return
+		}
+
+		//find document in users collection with passed email
+		err := UserCollection.FindOne(ctx, bson.M{"email": user.Email}).Decode(&founduser)
+		defer cancel()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "login or password incorrect"})
+			return
+		}
+
+		//verify passed password with stored hash
+		PasswordIsValid, msg := VerifyPassword(*user.Password, *founduser.Password)
+		defer cancel()
+		if !PasswordIsValid {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+			fmt.Println(msg)
+			return
+		}
+
+		//generate new tokens
+		token, refreshToken, _ := tokens.TokenGenerator(*founduser.Email, *founduser.First_Name, *founduser.Last_Name, founduser.User_ID)
+		defer cancel()
+
+		//replace old tokens with new ones
+		tokens.UpdateAllTokens(token, refreshToken, founduser.User_ID)
+		c.JSON(http.StatusFound, founduser)
+
+	}
+}
 
 // func ProductViewerAdmin () gin.HandlerFunc{
 
@@ -149,6 +170,13 @@ func HashPassword(password string) string {
 	return string(bytes)
 }
 
-// func VerifyPassword(userPassword string, givenPassword string) (bool, string) {
-
-// }
+func VerifyPassword(userpassword string, givenpassword string) (bool, string) {
+	err := bcrypt.CompareHashAndPassword([]byte(givenpassword), []byte(userpassword))
+	valid := true
+	msg := ""
+	if err != nil {
+		msg = "Login Or Passowrd is Incorerct"
+		valid = false
+	}
+	return valid, msg
+}
