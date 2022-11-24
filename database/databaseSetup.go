@@ -11,6 +11,7 @@ import (
 )
 
 func DBSet() *mongo.Client {
+	//connecting to local mongodb
 	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017"))
 	if err != nil {
 		log.Fatal(err)
@@ -32,8 +33,10 @@ func DBSet() *mongo.Client {
 	return client
 }
 
+// creating a pointer to a mongodb struct
 var Client *mongo.Client = DBSet()
 
+// specifying collection for user and product data
 func UserData(client *mongo.Client, collectionName string) *mongo.Collection {
 	var collection *mongo.Collection = client.Database("goShop").Collection(collectionName)
 	return collection
