@@ -154,7 +154,7 @@ func Login() gin.HandlerFunc {
 	}
 }
 
-func AddProductAdmin() gin.HandlerFunc {
+func AdminCreateProduct() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var ctx, cancel = context.WithTimeout(context.Background(), 100*time.Second)
 		var products models.Product
