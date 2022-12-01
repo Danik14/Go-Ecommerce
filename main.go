@@ -6,6 +6,7 @@ import (
 
 	"github.com/Danik14/go-shop/database"
 	"github.com/Danik14/go-shop/handlers"
+	"github.com/Danik14/go-shop/middleware"
 	"github.com/Danik14/go-shop/routes"
 	"github.com/gin-gonic/gin"
 )
@@ -32,7 +33,7 @@ func main() {
 
 	//registering routes related to user
 	routes.UserRoutes(router)
-	// router.Use(middleware.Authentication())
+	router.Use(middleware.Authentication())
 
 	router.GET("/addtocart", app.AddToCart())
 	// router.GET("removeitem", app.RemoveItem())
